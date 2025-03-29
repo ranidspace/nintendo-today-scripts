@@ -36,9 +36,11 @@ def main():
     session = requests.Session()
     session.headers["cookie"] = input("Input cookie: ")
 
-    # convert all small image links to large images
+    # convert all image links to large images
     html = session.get(base_url).content
-    html = html.replace(b"-small.", b"-large.")
+    html = html.replace(b"-tiny.webp", b"-large.webp")
+    html = html.replace(b"-small.webp", b"-large.webp")
+    html = html.replace(b"-medium.webp", b"-large.webp")
 
     # Save the original html file
     os.makedirs("./site", exist_ok=True)
@@ -49,13 +51,19 @@ def main():
 
     links = []
 
-    # should just be css
+    # download stylesheets
+    # XXX: this assumes all things with a link tag are css files.
     for link in soup.find_all("link"):
         if link.attrs.get("href"):
             relative = link.attrs.get("href")
+
+            # urljoin seems to be smart and not include the filename, yay!
             file_url = urljoin(base_url, relative)
+
             css = session.get(file_url).content
-            css = css.replace(b"-small.", b"-large.")
+            css = css.replace(b"-tiny.webp", b"-large.webp")
+            css = css.replace(b"-small.webp", b"-large.webp")
+            css = css.replace(b"-medium.webp", b"-large.webp")
             get_css_images(session, links, base_url, relative, css)
             links.append((relative, css))
 
@@ -66,6 +74,9 @@ def main():
             file_url = urljoin(base_url, relative)
             image = session.get(file_url).content
             links.append((relative, image))
+
+    # TODO: get javascript files
+    # not really needed since it seems to be app-related only.
 
     # Save each file in the proper position
     for link in links:

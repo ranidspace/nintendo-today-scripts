@@ -29,22 +29,16 @@ def get_css_images(session, links, base_url, relative, css):
             links.append((rel, image))
 
 
-def main():
-    """Main function to setup"""
-
-    base_url = input("Input page URL: ")
-    session = requests.Session()
-    session.headers["cookie"] = input("Input cookie: ")
-
+def save_page(url, session, title="index"):
     # convert all image links to large images
-    html = session.get(base_url).content
+    html = session.get(url).content
     html = html.replace(b"-tiny.webp", b"-large.webp")
     html = html.replace(b"-small.webp", b"-large.webp")
     html = html.replace(b"-medium.webp", b"-large.webp")
 
     # Save the original html file
     os.makedirs("./site", exist_ok=True)
-    with open(os.path.join("./site", "index.html"), "wb") as f:
+    with open(os.path.join("./site", f"{title}.html"), "wb") as f:
         f.write(html)
 
     soup = bs(html, "html.parser")
@@ -58,20 +52,20 @@ def main():
             relative = link.attrs.get("href")
 
             # urljoin seems to be smart and not include the filename, yay!
-            file_url = urljoin(base_url, relative)
+            file_url = urljoin(url, relative)
 
             css = session.get(file_url).content
             css = css.replace(b"-tiny.webp", b"-large.webp")
             css = css.replace(b"-small.webp", b"-large.webp")
             css = css.replace(b"-medium.webp", b"-large.webp")
-            get_css_images(session, links, base_url, relative, css)
+            get_css_images(session, links, url, relative, css)
             links.append((relative, css))
 
     # get images from the html files
     for img in soup.find_all('img'):
         if img.get("src"):
             relative = img["src"]
-            file_url = urljoin(base_url, relative)
+            file_url = urljoin(url, relative)
             image = session.get(file_url).content
             links.append((relative, image))
 
@@ -86,7 +80,31 @@ def main():
         with open(path, "wb") as f:
             f.write(link[1])
 
+
+def from_json(json, session):
+    url = json["user_content"]["content"]["content_body_url"]
+    title = json["user_content"]["content"]["title"]
+    # create new session to fix an issue?
+    s = requests.Session()
+    s.headers["cookie"] = (
+        "__token__=" +
+        json["user_content"]["content"]["akamai_token"]
+    )
+
+    save_page(url, s, title)
+
+
+def main():
+    """Main function to setup"""
+
+    base_url = input("Input page URL: ")
+    session = requests.Session()
+    session.headers["cookie"] = input("Input cookie: ")
+
+    save_page(base_url, session)
+
     return 0
 
 
-sys.exit(main())
+if __name__ == "__main__":
+    sys.exit(main())

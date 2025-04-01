@@ -6,7 +6,36 @@ the Nintendo Today mobile app.
 Each script has it's own dependencies, however `pip install -r
 requirements.txt` gets the dependencies for all of them.
 
-## nintendical
+## get_feed.py
+
+Downloads all the entries in a feed, such as the "Artworks Archive" or game
+lore pages.
+
+### Usage
+
+```
+python get_feed.py [-l locale] [-b] id
+```
+
+The locale is in the form `en-US`(default), many locales are not supported by
+the app yet.
+
+The `-b` flag will add all found entries to your accounts "Browsing History"
+
+The `id` is the id of the first entry in the feed.
+
+After running the command it will ask for an access token, please see [the
+section on intercepting phone traffic](#intercept-phone-traffic) for guidance.
+
+Requests to the app will often contain an `authorization` header which begins
+with `Bearer` (do not include "Bearer").
+
+It should also be in the response of requests to a url ending in "auth/refresh"
+
+Requires `requests, beautifulsoup4` modules, and a system install of `ffmpeg`
+(check if running the command by itself works).
+
+## nintendical.py
 
 Converts your Calendar in the nintendo app to a set of .ics files, to be
 imported into a calendar app of your choice. If hosted on a server, the files
@@ -18,23 +47,16 @@ can be updated and the calendar will update in the app.
 python nintendical.py -s [start date] -e [end date] -l [locale]
 ```
 
-The start and end date must be in the form YYYY-MM-DD, and the locale is in the
-form `en-US`. Many common locales are not supported by the app yet.
+The start and end date must be in the form YYYY-MM-DD.
 
 If omitted, the start date will be one month from the current day, the end date
 will be a year from the current date, and the locale will be `en-US`.
 
-After running the command it will ask for an access token, please see [the
-section on intercepting phone traffic](#intercept-phone-traffic) for guidance.
-
-Requests to the app will often contain an `authorization` header which begins
-with `Bearer` (do not include "Bearer").
-
-It should also be in the response of requests to a url ending in "auth/refresh"
+Locale and access token is the same as get_feed
 
 Requires `requests, icalendar` modules
 
-## get_calendar_videos
+## get_calendar_videos.py
 
 Downloads all the daily videos for all app themes. Will also include the
 birthday videos for the day of the month your birthday is. The access token is
@@ -44,12 +66,12 @@ the same as the Nintendical one.
 ```
 python get_calendar_videos.py -l [locale]
 ```
-Locale option is the same as nintendical. It will ask for an access token,
-which is also the same.
+
+Locale and access token is the same as get_feed
 
 Requires `requests` module
 
-## get_page
+## get_page.py
 
 Some of the news posts are html files, this will download the html file, along
 with any css and images linked. This will also upgrade the quality to the

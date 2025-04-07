@@ -52,6 +52,8 @@ def main():
     os.makedirs("./thumbnail", exist_ok=True)
 
     for cal in j["calendars"]:
+        if os.path.isfile(os.path.join(os.path.join("./animation", f"{cal["id"]}.mov"))):
+            continue
         link = cal["animation_url"]
 
         link = link.replace("-tiny.mov", "-large.mov")

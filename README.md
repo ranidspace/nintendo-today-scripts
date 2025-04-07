@@ -20,7 +20,7 @@ python get_feed.py [-l locale] [-b] id
 The locale is in the form `en-US`(default), many locales are not supported by
 the app yet.
 
-The `-b` flag will add all found entries to your accounts "Browsing History"
+The `-b` flag will add all found entries to your account's "Browsing History"
 
 The `id` is the id of the first entry in the feed.
 
@@ -139,8 +139,9 @@ installer, AntiSplit M, or you can install the app directly from Aurora Store
 
 You can connect the device to mitmweb by adding it as a proxy on your phone.
 Find the local ip address of your computer and the port (8080 by default) and
-use that. You can also run mitmweb as a wireguard server, and you can install
-the wireguard app on the device, and connect to it there.
+you can use `adb shell settings put global http_proxy "[ip of device running
+proxy]:8080"`. You can also run mitmweb as a wireguard server, and you can
+install the wireguard app on the device, and connect to it there.
 
 4. Confirm you're intercepting web traffic
 
@@ -150,6 +151,6 @@ request (includes the headers, tokens, cookies) and the response (data received
 back from the server, such as images)
 
 If you're not receiving data on mitmweb, it's likely you need to configure your
-connection to the proxy. If you are receiving data, but you're unable to use
-the app or any https websites, it's likely your device doesn't have the
-certificate.
+connection to the proxy or your computer's firewall. If you are receiving data,
+but you're unable to use the app or any https websites, it's likely your device
+doesn't have the certificate.

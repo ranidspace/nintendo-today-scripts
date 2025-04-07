@@ -50,8 +50,8 @@ def download_images(info, s):
         # XXX: Doesn't check if filename is safe
         os.makedirs(f"./images/{title}", exist_ok=True)
 
-        # Download and save image
-        r = s.get(url)
+        # Download and save image with a different session
+        r = requests.get(url)
         with open(os.path.join(f"./images/{title}", fname), "wb") as f:
             f.write(r.content)
 
@@ -134,7 +134,13 @@ def main():
 
         func(j, s)
 
-        id = j["series_info"].get("next_content_id")
+        if j.get("series_info"):
+            id = j["series_info"].get("next_content_id")
+            if id is None:
+                print("No more entries, exiting.")
+        else:
+            print("Not a series, exiting.")
+            break
 
 
 if __name__ == "__main__":

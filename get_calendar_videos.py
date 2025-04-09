@@ -52,7 +52,7 @@ def main():
     os.makedirs("./thumbnail", exist_ok=True)
 
     for cal in j["calendars"]:
-        if os.path.isfile(os.path.join(os.path.join("./animation", f"{cal["id"]}.mov"))):
+        if os.path.isfile(os.path.join(os.path.join("./animation", f"{cal['id']}.mov"))):
             continue
         link = cal["animation_url"]
 
@@ -60,7 +60,7 @@ def main():
         link = link.replace("-small.mov", "-large.mov")
         link = link.replace("-medium.mov", "-large.mov")
         r = requests.get(link)
-        with open(os.path.join("./animation", f"{cal["id"]}.mov"), "wb") as f:
+        with open(os.path.join("./animation", f"{cal['id']}.mov"), "wb") as f:
             f.write(r.content)
 
         link = cal["thumbnail_url"]
@@ -68,7 +68,7 @@ def main():
         link = link.replace("-small.webp", "-large.webp")
         link = link.replace("-medium.webp", "-large.webp")
         r = requests.get(link)
-        with open(os.path.join("./thumbnail", f"{cal["id"]}.webp"), "wb") as f:
+        with open(os.path.join("./thumbnail", f"{cal['id']}.webp"), "wb") as f:
             f.write(r.content)
 
     return 0

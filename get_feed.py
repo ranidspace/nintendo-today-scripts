@@ -128,7 +128,7 @@ def main():
     # TODO: Fetch previous feed items
     while id:
         j = s.get(base_contents + id).json()
-        print(f"Found entry: {j["user_content"]["content"]["title"]}")
+        print(f"Found entry: {j['user_content']['content']['title']}")
         if hist:
             s.put(base_hist + id)
 

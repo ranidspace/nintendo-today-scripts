@@ -4,34 +4,39 @@
 # Description: Exports all the Nintendo Today calendars to .ics files
 
 import argparse
-import sys
 import os
+import sys
 from datetime import date, datetime, timedelta
 
 import icalendar
 import requests
 
-__version__ = '0.0.0'
+__version__ = "0.0.1"
+
 
 def parse_args():
     """Parse command line options"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-l", "--locale",
+        "-l",
+        "--locale",
         default="en-US",
-        help="Language and locale of the calendar, default en-US"
+        help="Language and locale of the calendar, default en-US",
     )
     parser.add_argument(
-        "-s", "--start-date",
-        default=(datetime.today() - timedelta(days=30)).strftime('%Y-%m-%d'),
-        help="Start of calendar, format YYYY-MM-DD. Default: 30 days ago"
+        "-s",
+        "--start-date",
+        default=(datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d"),
+        help="Start of calendar, format YYYY-MM-DD. Default: 30 days ago",
     )
     parser.add_argument(
-        "-e", "--end-date",
-        default=(datetime.today() + timedelta(days=365)).strftime('%Y-%m-%d'),
-        help="End of calendar, format YYYY-MM-DD. Default: 365 days from now"
+        "-e",
+        "--end-date",
+        default=(datetime.today() + timedelta(days=365)).strftime("%Y-%m-%d"),
+        help="End of calendar, format YYYY-MM-DD. Default: 365 days from now",
     )
     return parser.parse_args()
+
 
 def main():
     """Main function to setup"""
@@ -48,10 +53,12 @@ def main():
     header = {
         "authorization": f"Bearer {access_token}",
         "operating-system": "android",
-        "application-version": "1.0.0",
+        "application-version": "1.0.2",
     }
 
-    link = "https://prod-server.de4taiqu.srv.nintendo.net/" + locale + "/event_schedules"
+    link = (
+        "https://prod-server.de4taiqu.srv.nintendo.net/" + locale + "/event_schedules"
+    )
 
     response = requests.get(link, params=payload, headers=header)
 
@@ -84,7 +91,7 @@ def main():
             event.add("dtstamp", current_time)
 
             if schedule["all_day"]:
-                datelist = [int(x) for x in event_date.split('-')]
+                datelist = [int(x) for x in event_date.split("-")]
                 event.add("dtstart", date(*datelist))
             else:
                 start = datetime.fromtimestamp(schedule["started_at"])
@@ -111,7 +118,6 @@ def main():
                 calendar_list[schedule["category_name"]] = []
             calendar_list[schedule["category_name"]].append(event)
 
-
     dir = "./calendars"
     if not os.path.exists(dir):
         os.makedirs(dir)
@@ -125,8 +131,9 @@ def main():
             cal.add_component(event)
 
         # TODO make this filename safe, but works fine so far
-        with open(os.path.join(dir,f"{name}.ics"), "wb") as f:
+        with open(os.path.join(dir, f"{name}.ics"), "wb") as f:
             f.write(cal.to_ical())
     return 0
+
 
 sys.exit(main())

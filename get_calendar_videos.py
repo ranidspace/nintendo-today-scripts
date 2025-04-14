@@ -14,9 +14,10 @@ def parse_args():
     """Parse command line options"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-l", "--locale",
+        "-l",
+        "--locale",
         default="en-US",
-        help="Language and locale of the calendar, default en-US"
+        help="Language and locale of the calendar, default en-US",
     )
     return parser.parse_args()
 
@@ -33,7 +34,7 @@ def main():
         "authorization": f"Bearer {access_token}",
         "time_zone": "America/Chicago",
         "operating-system": "android",
-        "application-version": "1.0.0",
+        "application-version": "1.0.2",
     }
 
     # not sure if other locales have differnet numbers, the birthday ones might
@@ -43,7 +44,9 @@ def main():
     response = requests.get(link, headers=header)
 
     if response.status_code != 200:
-        print(f"Failed to get calendars: Error {response.status_code}\n{response.json()}")
+        print(
+            f"Failed to get calendars: Error {response.status_code}\n{response.json()}"
+        )
         return 1
 
     j = response.json()
@@ -52,7 +55,9 @@ def main():
     os.makedirs("./thumbnail", exist_ok=True)
 
     for cal in j["calendars"]:
-        if os.path.isfile(os.path.join(os.path.join("./animation", f"{cal['id']}.mov"))):
+        if os.path.isfile(
+            os.path.join(os.path.join("./animation", f"{cal['id']}.mov"))
+        ):
             continue
         link = cal["animation_url"]
 

@@ -4,17 +4,16 @@
 # Description: Download all items in a content feed
 
 import argparse
-import os
-import sys
 import subprocess
-from urllib.parse import urlparse
+import sys
+from pathlib import Path
 
 import requests
 
 from get_page import from_json
 
 
-def download_video(info, s):
+def download_video(info, _):
     """Use system ffmpeg to get the video"""
     url = info["user_content"]["content"]["content_movie_url"]
     title = info["user_content"]["content"]["title"]
@@ -28,50 +27,58 @@ def download_video(info, s):
     subprocess.run(
         [
             "ffmpeg",
-            "-hide_banner", "-loglevel", "error",
+            "-hide_banner",
+            "-loglevel",
+            "error",
             "-y",
-            "-headers", f'__token__: {token}',
-            "-i", url,
-            "-c", "copy",
-            f"videos/{title}.mp4"
+            "-headers",
+            f"__token__: {token}",
+            "-i",
+            url,
+            "-c",
+            "copy",
+            f"videos/{title}.mp4",
         ],
     )
 
 
-def download_images(info, s):
+def download_images(info, _):
     """Get all images in a gallery post"""
-    for url in info["user_content"]["content"]["content_image_urls"]:
+    urls = info["user_content"]["content"]["content_image_urls"]
+    num = info["user_content"]["content"]["content_group_number"]
+    img_num = ""
+    title = info["user_content"]["content"]["title"]
+
+    for i in range(len(urls)):
         # Ensure large image
-        url = url.replace("-small.", "-large.")
-        fname = os.path.basename(urlparse(url).path)
-        title = info["user_content"]["content"]["title"]
+        url = urls[i].replace("-small.", "-large.")
+        if len(urls) > 1:
+            img_num = f".{i + 1}"
+        fname = f"{num}{img_num} - {title}"
+        print(fname)
         print(f"\tDownloading image: {title}")
 
-        # XXX: Doesn't check if filename is safe
-        os.makedirs(f"./images/{title}", exist_ok=True)
-
-        # Download and save image with a different session
+        # Download and save image with a unique session
         r = requests.get(url)
-        with open(os.path.join(f"./images/{title}", fname), "wb") as f:
-            f.write(r.content)
+        outdir = Path("./images").joinpath(fname)
+        outdir.with_suffix(outdir.suffix + ".webp").write_bytes(r.content)
 
 
 def parse_args():
     """Parse command line options"""
     parser = argparse.ArgumentParser()
+    parser.add_argument("id", help="ID of the first entry in the feed")
     parser.add_argument(
-        "id",
-        help="ID of the first entry in the feed"
-    )
-    parser.add_argument(
-        "-l", "--locale",
+        "-l",
+        "--locale",
         default="en-US",
-        help="Language and locale of the calendar, default en-US"
+        help="Language and locale of the calendar, default en-US",
     )
     parser.add_argument(
-        "-b", "--browsing_history",
+        "-b",
+        "--browsing_history",
         action="store_true",
-        help="Add the content to the apps browsing_history"
+        help="Add the content to the apps browsing_history",
     )
     return parser.parse_args()
 
@@ -80,7 +87,7 @@ def main():
     args = parse_args()
     locale = args.locale
     hist = args.browsing_history
-    id = args.id
+    post_id = args.id
 
     access_token = input("Input access_token: ")
 
@@ -88,7 +95,7 @@ def main():
         "authorization": f"Bearer {access_token}",
         "time_zone": "America/Chicago",
         "operating-system": "android",
-        "application-version": "1.0.0",
+        "application-version": "1.0.2",
     }
     s = requests.Session()
     s.headers.update(header)
@@ -99,7 +106,7 @@ def main():
 
     try:
         # Get type of url
-        response = s.get(base_contents + id)
+        response = s.get(base_contents + post_id)
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
         # Only doing a one check
@@ -119,24 +126,24 @@ def main():
             func = from_json
         case 2:
             func = download_video
-            os.makedirs("./videos", exist_ok=True)
+            Path("./videos").mkdir(exist_ok=True)
         case 3:
             func = download_images
-            os.makedirs("./images", exist_ok=True)
+            Path("./images").mkdir(exist_ok=True)
 
     # Run until there's no more next content
     # TODO: Fetch previous feed items
-    while id:
-        j = s.get(base_contents + id).json()
+    while post_id:
+        j = s.get(base_contents + post_id).json()
         print(f"Found entry: {j['user_content']['content']['title']}")
         if hist:
-            s.put(base_hist + id)
+            s.put(base_hist + post_id)
 
         func(j, s)
 
         if j.get("series_info"):
-            id = j["series_info"].get("next_content_id")
-            if id is None:
+            post_id = j["series_info"].get("next_content_id")
+            if post_id is None:
                 print("No more entries, exiting.")
         else:
             print("Not a series, exiting.")

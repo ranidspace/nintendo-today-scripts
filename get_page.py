@@ -3,14 +3,13 @@
 # Author: Ranidspace
 # Description: Downloads an .html page and all assets from Nintendo Today
 
-import os
-import pathlib
 import re
 import sys
+from pathlib import Path
 from urllib.parse import urljoin
 
 import requests
-from bs4 import BeautifulSoup as bs
+from bs4 import BeautifulSoup
 
 
 def get_css_images(session, links, base_url, relative, css):
@@ -20,11 +19,10 @@ def get_css_images(session, links, base_url, relative, css):
     urls = re.findall(regex, css)
     for url in urls:
         # All images have been webp so far should be fine
-        if b'webp' in url:
-            parent = pathlib.Path(relative).parent
-            rel = os.path.join(parent, url.decode("utf-8"))
-            rel = os.path.normpath(rel)
-            file_url = urljoin(base_url, rel)
+        if b"webp" in url:
+            parent = Path(relative).parent
+            rel = parent / url.decode("utf-8")
+            file_url = urljoin(base_url, str(rel))
             image = session.get(file_url).content
             links.append((rel, image))
 
@@ -37,11 +35,10 @@ def save_page(url, session, title="index"):
     html = html.replace(b"-medium.webp", b"-large.webp")
 
     # Save the original html file
-    os.makedirs("./site", exist_ok=True)
-    with open(os.path.join("./site", f"{title}.html"), "wb") as f:
-        f.write(html)
+    Path("./site").mkdir(exist_ok=True)
+    Path(f"./site/{title}.html").write_bytes(html)
 
-    soup = bs(html, "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
 
     links = []
 
@@ -62,7 +59,7 @@ def save_page(url, session, title="index"):
             links.append((relative, css))
 
     # get images from the html files
-    for img in soup.find_all('img'):
+    for img in soup.find_all("img"):
         if img.get("src"):
             relative = img["src"]
             file_url = urljoin(url, relative)
@@ -74,29 +71,24 @@ def save_page(url, session, title="index"):
 
     # Save each file in the proper position
     for link in links:
-        path = os.path.join("./site", link[0])
-        path = os.path.normpath(path)
-        os.makedirs(pathlib.Path(path).parent, exist_ok=True)
-        with open(path, "wb") as f:
-            f.write(link[1])
+        path = Path("./site") / link[0]
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(link[1])
 
 
-def from_json(json, session):
+def from_json(json, _):
+    """Download page from /contents/[id] json"""
     url = json["user_content"]["content"]["content_body_url"]
     title = json["user_content"]["content"]["title"]
     # create new session to fix an issue?
     s = requests.Session()
-    s.headers["cookie"] = (
-        "__token__=" +
-        json["user_content"]["content"]["akamai_token"]
-    )
+    s.headers["cookie"] = "__token__=" + json["user_content"]["content"]["akamai_token"]
 
     save_page(url, s, title)
 
 
 def main():
     """Main function to setup"""
-
     base_url = input("Input page URL: ")
     session = requests.Session()
     session.headers["cookie"] = input("Input cookie: ")

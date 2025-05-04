@@ -4,6 +4,7 @@
 # Description: Download all items in a content feed
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -17,8 +18,8 @@ def download_video(info, _):
     """Use system ffmpeg to get the video"""
     url = info["user_content"]["content"]["content_movie_url"]
     title = info["user_content"]["content"]["title"]
-    # Needs a better solution to ensure the filename is safe
-    title = title.replace("/", "").replace("  ", " ")
+    # Make title filename safe
+    title = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", title)
 
     token = info["user_content"]["content"]["akamai_header_token"]
 
@@ -56,6 +57,7 @@ def download_images(info, _):
             img_num = f".{i + 1}"
         fname = f"{num}{img_num} - {title}"
         print(fname)
+        fname = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", fname)
         print(f"\tDownloading image: {title}")
 
         # Download and save image with a unique session

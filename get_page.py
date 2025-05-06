@@ -38,6 +38,7 @@ def save_page(url, session, title="index"):
     Path("./site").mkdir(exist_ok=True)
     # Create filename safe title
     title = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", title)
+    title = title.replace(r"/\s\s+/g", " ")
     Path(f"./site/{title}.html").write_bytes(html)
 
     soup = BeautifulSoup(html, "html.parser")

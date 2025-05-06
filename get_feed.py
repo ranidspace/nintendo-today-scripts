@@ -20,7 +20,7 @@ def download_video(info, _):
     title = info["user_content"]["content"]["title"]
     # Make title filename safe
     title = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", title)
-
+    title = re.sub(r"\s+", " ", title)
     token = info["user_content"]["content"]["akamai_header_token"]
 
     print(f"\tDownloading Video: {title}.mp4")
@@ -49,6 +49,9 @@ def download_images(info, _):
     num = info["user_content"]["content"]["content_group_number"]
     img_num = ""
     title = info["user_content"]["content"]["title"]
+    # make filename safe
+    title = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", title)
+    title = re.sub(r"\s+", " ", title)
 
     for i in range(len(urls)):
         # Ensure large image
@@ -56,8 +59,6 @@ def download_images(info, _):
         if len(urls) > 1:
             img_num = f".{i + 1}"
         fname = f"{num}{img_num} - {title}"
-        print(fname)
-        fname = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", fname)
         print(f"\tDownloading image: {title}")
 
         # Download and save image with a unique session

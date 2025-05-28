@@ -93,10 +93,12 @@ No script needed, the video files are "master.m3u8" and can be downloaded with
 ffmpeg:
 
 ```
-ffmpeg -headers "__token__: [add token here]" -i https://[link/to]/master.m3u8 output.mkv`
+ffmpeg -headers "cookie: __token__=[add token here]" -i https://[link/to]/master.m3u8 -c copy output.mp4`
 ```
 
 The token needed is inside of the header for the web request.
+
+`-c copy` is optional, if you remove it, ffmpeg will slightly compress and optimize the video.
 
 ## Intercept phone traffic
 

@@ -14,15 +14,16 @@ lore pages.
 ### Usage
 
 ```
-python get_feed.py [-l locale] [-b] id
+python get_feed.py [-b] [-l locale] first_post_id
 ```
 
-The locale is in the form `en-US`(default), many locales are not supported by
+The locale is in the form `en-US` (default), many locales are not supported by
 the app yet.
 
 The `-b` flag will add all found entries to your account's "Browsing History"
 
-The `id` is the id of the first entry in the feed.
+The `first_post_id` is the id of the first entry in the feed. This script will
+download all posts afterwards
 
 After running the command it will ask for an access token, please see [the
 section on intercepting phone traffic](#intercept-phone-traffic) for guidance.
@@ -44,7 +45,7 @@ can be updated and the calendar will update in the app.
 ### Usage
 
 ```
-python nintendical.py -s [start date] -e [end date] -l [locale]
+python nintendical.py [-s start_date] [-e end_date] [-l locale]
 ```
 
 The start and end date must be in the form YYYY-MM-DD.
@@ -64,7 +65,7 @@ the same as the Nintendical one.
 
 ### Usage
 ```
-python get_calendar_videos.py -l [locale]
+python get_calendar_videos.py [-l locale]
 ```
 
 Locale and access token is the same as get_feed

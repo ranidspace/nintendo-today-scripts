@@ -24,9 +24,12 @@ def download_video(info, _):
     token = info["user_content"]["content"]["akamai_header_token"]
 
     print(f"\tDownloading Video: {title}.mp4")
+
     # get the video file with the headers, copy the video and audio codec
+    # TODO: Replace with ffmpeg-python
     subprocess.run(
         [
+            "/usr/bin/env",
             "ffmpeg",
             "-hide_banner",
             "-loglevel",
@@ -40,6 +43,7 @@ def download_video(info, _):
             "copy",
             f"videos/{title}.mp4",
         ],
+        check=True,
     )
 
 
@@ -62,7 +66,7 @@ def download_images(info, _):
         print(f"\tDownloading image: {title}")
 
         # Download and save image with a unique session
-        r = requests.get(url)
+        r = requests.get(url, timeout=5)
         outdir = Path("./images").joinpath(fname)
         outdir.with_suffix(outdir.suffix + ".webp").write_bytes(r.content)
 
@@ -98,7 +102,7 @@ def main():
         "authorization": f"Bearer {access_token}",
         "time_zone": "America/Chicago",
         "operating-system": "android",
-        "application-version": "1.0.2",
+        "application-version": "2.4.0",
     }
     s = requests.Session()
     s.headers.update(header)
@@ -134,23 +138,34 @@ def main():
             func = download_images
             Path("./images").mkdir(exist_ok=True)
 
+    if not j["user_content"]["content"]["content_group_id"]:
+        print(f"Single Entry: {j['user_content']['content']['title']}")
+        if hist:
+            s.put(base_hist + post_id)
+        func(j, s)
+        return
+
+    print("Finding first in series:")
     # Run until there's no more next content
-    # TODO: Fetch previous feed items
+    # Find previous
+    while prev_post_id := j["user_content"]["content"]["prev_content_id"]:
+        print(j["user_content"]["content"]["content_group_number"])
+        j = s.get(base_contents + prev_post_id).json()
+
     while post_id:
-        j = s.get(base_contents + post_id).json()
         print(f"Found entry: {j['user_content']['content']['title']}")
         if hist:
             s.put(base_hist + post_id)
 
         func(j, s)
 
-        if j.get("series_info"):
-            post_id = j["series_info"].get("next_content_id")
-            if post_id is None:
-                print("No more entries, exiting.")
+        post_id = j["user_content"]["content"]["next_content_id"]
+        # XXX: This is stupid but it avoids having to re-request
+        # the same thing mutliple times
+        if not post_id:
+            print("No more entries, exiting.")
         else:
-            print("Not a series, exiting.")
-            break
+            j = s.get(base_contents + post_id).json()
 
 
 if __name__ == "__main__":

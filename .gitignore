@@ -4,6 +4,8 @@ animation/
 images/
 videos/
 site/
+news/
+client.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -11,41 +11,55 @@ from pathlib import Path
 import ffmpeg
 import requests
 
+from auth import create_session, update_token
 from get_page import from_json
 
 
-def download_video(info, session, locale):
+def download_video(
+    info,
+    session: requests.Session,
+    path: Path,
+    locale: str,
+) -> requests.Response | None:
     """Use system ffmpeg to get the video"""
     url = info["user_content"]["content"]["content_movie_url"]
     title = info["user_content"]["content"]["title"]
+    category = info["user_content"]["content"].get("content_group_name")
+    if category:
+        title = f"{category} - {title}"
+
     # Make title filename safe
     title = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", title)
-    title = re.sub(r"\s+", " ", title)
+    title = re.sub(r"\s+", " ", title).strip()
+    title += ".mkv"
+
     token = info["user_content"]["content"]["akamai_header_token"]
 
     if info["user_content"]["content"]["is_premiere"]:
         post_id = info["user_content"]["id"]
         premiere = session.get(
             f"https://prod-server.de4taiqu.srv.nintendo.net/{locale}/contents/{post_id}/premiere",
-        ).json()
+        )
+        if not premiere.ok:
+            return premiere
+        premiere = premiere.json()
         url = premiere["premiere"]["content_movie_url"]
         token = premiere["premiere"]["cdn_header_token"]
+    output = path.joinpath(title)
 
-    print(f"\tDownloading Video: {title}.mkv")
+    print(f"\tDownloading Video: {title}")
 
-    # get the video file with the headers, copy the video and audio codec
-    # TODO: Replace with ffmpeg-python
     ffmpeg.input(url, headers=f"__token__: {token}").output(
-        f"videos/{title}.mkv",
+        str(output),
         codec="copy",
     ).run(capture_stderr=True, overwrite_output=True)
+    return None
 
 
-def download_images(info, _):
+def download_images(info: dict, _, path: Path) -> requests.Response | None:
     """Get all images in a gallery post"""
     urls = info["user_content"]["content"]["content_image_urls"]
-    num = info["user_content"]["content"]["content_group_number"]
-    img_num = ""
+    group = info["user_content"]["content"].get("content_group_name")
     title = info["user_content"]["content"]["title"]
     # make filename safe
     title = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", title)
@@ -54,28 +68,43 @@ def download_images(info, _):
     for i in range(len(urls)):
         # Ensure large image
         url = urls[i].replace("-small.", "-large.")
+        suffix = Path(url.split("?")[0]).suffix
+        if group:
+            title = f"{group} - {title}"
         if len(urls) > 1:
-            img_num = f".{i + 1}"
-        fname = f"{num}{img_num} - {title}"
+            title += f" - {i + 1}"
+        title += suffix
         print(f"\tDownloading image: {title}")
 
         # Download and save image with a unique session
         r = requests.get(url, timeout=5)
-        outdir = Path("./images").joinpath(fname)
-        outdir.with_suffix(outdir.suffix + ".webp").write_bytes(r.content)
+        r.raise_for_status()
+        outdir = path.joinpath(title)
+        outdir.write_bytes(r.content)
+    return None
 
 
-def download_individual(json_info, session, locale):
+def download_individual(
+    json_info: dict,
+    session: requests.Session,
+    locale: str,
+    path: Path | None = None,
+) -> requests.Response | None:
     post_content = json_info["user_content"]["content"]
+
+    # 1: HTML page
+    # 2: Video
+    # 3: Series of images
     match post_content["content_type"]:
         case 1:
-            from_json(json_info, session)
+            path = path or Path("./site/")
+            return from_json(json_info, session, path)
         case 2:
-            Path("./videos").mkdir(exist_ok=True)
-            download_video(json_info, session, locale)
+            path = path or Path("./videos/")
+            return download_video(json_info, session, path, locale)
         case 3:
-            Path("./images").mkdir(exist_ok=True)
-            download_images(json_info, session)
+            path = path or Path("./images/")
+            return download_images(json_info, session, path)
 
 
 def parse_args():
@@ -103,16 +132,10 @@ def main():
     hist = args.browsing_history
     post_id = args.id
 
-    access_token = input("Input access_token: ")
+    s = create_session()
 
-    header = {
-        "authorization": f"Bearer {access_token}",
-        "time_zone": "America/Chicago",
-        "operating-system": "android",
-        "application-version": "2.4.0",
-    }
-    s = requests.Session()
-    s.headers.update(header)
+    if s is None:
+        return 1
 
     base = f"https://prod-server.de4taiqu.srv.nintendo.net/{locale}/"
     base_contents = base + "contents/"
@@ -128,20 +151,16 @@ def main():
         print(e.args[0], file=sys.stderr)
         print(response.json(), file=sys.stderr)
 
-        sys.exit(1)
+        return 1
 
     j = response.json()
-
-    # 1: HTML page
-    # 2: Video
-    # 3: Series of images
 
     if not j["user_content"]["content"]["content_group_id"]:
         print(f"Single Entry: {j['user_content']['content']['title']}")
         if hist:
             s.put(base_hist + post_id)
         download_individual(j, s, locale)
-        return
+        return 0
 
     print("Finding first in series:")
     # Run until there's no more next content
@@ -155,7 +174,20 @@ def main():
         if hist:
             s.put(base_hist + post_id)
 
-        download_individual(j, s, locale)
+        response = download_individual(j, s, locale)
+
+        if response is not None:
+            # retry
+            print(
+                "Error downloading media, attempting to update token.", file=sys.stderr
+            )
+            s = update_token(s)
+            if s is None:
+                return 1
+            response = download_individual(j, s, locale)
+            if response is not None:
+                print(f"Unrecoverable error: {response.text}", file=sys.stderr)
+                return 1
 
         post_id = j["user_content"]["content"]["next_content_id"]
         # XXX: This is stupid but it avoids having to re-request
@@ -163,8 +195,15 @@ def main():
         if not post_id:
             print("No more entries, exiting.")
         else:
-            j = s.get(base_contents + post_id).json()
+            req = s.get(base_contents + post_id)
+            if not req.ok:
+                print("Fetching post data failed, refreshing token")
+                s = update_token(s)
+                if s is None:
+                    return 1
+            j = req.json()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -6,6 +6,10 @@ the Nintendo Today mobile app.
 Each script has it's own dependencies, however `pip install -r
 requirements.txt` gets the dependencies for all of them.
 
+When running any script for the first time it will ask for a `refresh_token`
+and a `device_account_id`, please see [the section on intercepting phone
+traffic](#intercept-phone-traffic) for guidance.
+
 ## get_feed.py
 
 Downloads all the entries in a feed, such as the "Artworks Archive" or game
@@ -25,16 +29,7 @@ The `-b` flag will add all found entries to your account's "Browsing History"
 The `first_post_id` is the id of the first entry in the feed. This script will
 download all posts afterwards
 
-After running the command it will ask for an access token, please see [the
-section on intercepting phone traffic](#intercept-phone-traffic) for guidance.
-
-Requests to the app will often contain an `authorization` header which begins
-with `Bearer` (do not include "Bearer").
-
-It should also be in the response of requests to a url ending in "auth/refresh"
-
-Requires `requests, beautifulsoup4` modules, and a system install of `ffmpeg`
-(check if running the command by itself works).
+Requires `requests, beautifulsoup4, ffmpeg-python` modules.
 
 ## nintendical.py
 
@@ -53,7 +48,7 @@ The start and end date must be in the form YYYY-MM-DD.
 If omitted, the start date will be one month from the current day, the end date
 will be a year from the current date, and the locale will be `en-US`.
 
-Locale and access token is the same as get_feed
+Locale is the same as `get_feed`
 
 Requires `requests, icalendar` modules
 
@@ -68,7 +63,7 @@ the same as the Nintendical one.
 python get_calendar_videos.py [-l locale]
 ```
 
-Locale and access token is the same as get_feed
+Locale is the same as `get_feed`
 
 Requires `requests` module
 
@@ -99,7 +94,8 @@ ffmpeg -headers "cookie: __token__=[add token here]" -i https://[link/to]/master
 
 The token needed is inside of the header for the web request.
 
-`-c copy` is optional, if you remove it, ffmpeg will slightly compress and optimize the video.
+`-c copy` is optional, if you remove it, ffmpeg will slightly compress and
+optimize the video.
 
 ## Intercept phone traffic
 
@@ -136,7 +132,8 @@ self signed certificate)
 
 The app comes as a split apk, so you may need something such as an xapk
 installer, AntiSplit M, or you can install the app directly from Aurora Store
-(try version 4.2.5 if it crashes on the emulator).
+(try version 4.2.5 if it crashes on the emulator) or by using `adb
+install-multiple`.
 
 3. Run mitmweb and connect the device to it
 
@@ -157,3 +154,11 @@ If you're not receiving data on mitmweb, it's likely you need to configure your
 connection to the proxy or your computer's firewall. If you are receiving data,
 but you're unable to use the app or any https websites, it's likely your device
 doesn't have the certificate.
+
+5. Get data
+
+In the flow list, find a request to
+`https://prod-server.de4taiqu.srv.nintendo.net/en-US/auth/refresh`, and in the
+request body, there should be the fields `refresh_token` and
+`device_account_id`. Paste these into the console when asked, or paste the full
+json into client.json

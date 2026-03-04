@@ -5,16 +5,16 @@
 
 import argparse
 import re
-import subprocess
 import sys
 from pathlib import Path
 
+import ffmpeg
 import requests
 
 from get_page import from_json
 
 
-def download_video(info, _):
+def download_video(info, session, locale):
     """Use system ffmpeg to get the video"""
     url = info["user_content"]["content"]["content_movie_url"]
     title = info["user_content"]["content"]["title"]
@@ -23,28 +23,22 @@ def download_video(info, _):
     title = re.sub(r"\s+", " ", title)
     token = info["user_content"]["content"]["akamai_header_token"]
 
-    print(f"\tDownloading Video: {title}.mp4")
+    if info["user_content"]["content"]["is_premiere"]:
+        post_id = info["user_content"]["id"]
+        premiere = session.get(
+            f"https://prod-server.de4taiqu.srv.nintendo.net/{locale}/contents/{post_id}/premiere",
+        ).json()
+        url = premiere["premiere"]["content_movie_url"]
+        token = premiere["premiere"]["cdn_header_token"]
+
+    print(f"\tDownloading Video: {title}.mkv")
 
     # get the video file with the headers, copy the video and audio codec
     # TODO: Replace with ffmpeg-python
-    subprocess.run(
-        [
-            "/usr/bin/env",
-            "ffmpeg",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-headers",
-            f"__token__: {token}",
-            "-i",
-            url,
-            "-c",
-            "copy",
-            f"videos/{title}.mp4",
-        ],
-        check=True,
-    )
+    ffmpeg.input(url, headers=f"__token__: {token}").output(
+        f"videos/{title}.mkv",
+        codec="copy",
+    ).run(capture_stderr=True, overwrite_output=True)
 
 
 def download_images(info, _):
@@ -69,6 +63,19 @@ def download_images(info, _):
         r = requests.get(url, timeout=5)
         outdir = Path("./images").joinpath(fname)
         outdir.with_suffix(outdir.suffix + ".webp").write_bytes(r.content)
+
+
+def download_individual(json_info, session, locale):
+    post_content = json_info["user_content"]["content"]
+    match post_content["content_type"]:
+        case 1:
+            from_json(json_info, session)
+        case 2:
+            Path("./videos").mkdir(exist_ok=True)
+            download_video(json_info, session, locale)
+        case 3:
+            Path("./images").mkdir(exist_ok=True)
+            download_images(json_info, session)
 
 
 def parse_args():
@@ -128,21 +135,12 @@ def main():
     # 1: HTML page
     # 2: Video
     # 3: Series of images
-    match j["user_content"]["content"]["content_type"]:
-        case 1:
-            func = from_json
-        case 2:
-            func = download_video
-            Path("./videos").mkdir(exist_ok=True)
-        case 3:
-            func = download_images
-            Path("./images").mkdir(exist_ok=True)
 
     if not j["user_content"]["content"]["content_group_id"]:
         print(f"Single Entry: {j['user_content']['content']['title']}")
         if hist:
             s.put(base_hist + post_id)
-        func(j, s)
+        download_individual(j, s, locale)
         return
 
     print("Finding first in series:")
@@ -157,7 +155,7 @@ def main():
         if hist:
             s.put(base_hist + post_id)
 
-        func(j, s)
+        download_individual(j, s, locale)
 
         post_id = j["user_content"]["content"]["next_content_id"]
         # XXX: This is stupid but it avoids having to re-request

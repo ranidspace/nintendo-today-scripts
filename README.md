@@ -14,6 +14,9 @@ traffic](#intercept-phone-traffic) for guidance.
 
 Downloads all the entries in a feed, such as the "Artworks Archive" or game
 lore pages.
+The locale is in the form `en-US` (default), many locales are not supported by
+the app yet.
+
 
 ### Usage
 
@@ -21,15 +24,25 @@ lore pages.
 python get_feed.py [-b] [-l locale] first_post_id
 ```
 
-The locale is in the form `en-US` (default), many locales are not supported by
-the app yet.
-
 The `-b` flag will add all found entries to your account's "Browsing History"
 
 The `first_post_id` is the id of the first entry in the feed. This script will
 download all posts afterwards
 
 Requires `requests, beautifulsoup4, ffmpeg-python` modules.
+
+## all_news.py
+
+Downloads every single news post from the main "News" feed and categorizes it.
+This misses a lot of content which isn't marked as news.
+
+```
+python all_news.py [-l locale]
+```
+
+Locale is the same as `get_feed`
+
+Requires the same modules as `get_feed`
 
 ## nintendical.py
 
@@ -55,9 +68,7 @@ Requires `requests, icalendar` modules
 ## get_calendar_videos.py
 
 Downloads all the daily videos for all app themes. Will also include the
-birthday videos for the day of the month your birthday is. The access token is
-the same as the Nintendical one.
-
+birthday videos for the day of the month your birthday is.
 ### Usage
 ```
 python get_calendar_videos.py [-l locale]
@@ -66,6 +77,13 @@ python get_calendar_videos.py [-l locale]
 Locale is the same as `get_feed`
 
 Requires `requests` module
+
+NOTE: The videos used in the app are broken, and cannot be decoded or played
+with the latest version of FFmpeg/libavcodec (used in vlc/mpv/everything).
+Until a workaround is released, FFmpeg 7.1.3 is the latest release which works.
+
+[See
+issue](https://code.ffmpeg.org/FFmpeg/FFmpeg/issues/22384#issuecomment-30038)
 
 ## get_page.py
 

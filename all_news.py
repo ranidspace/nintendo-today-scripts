@@ -16,24 +16,16 @@ def parse_args():
         default="en-US",
         help="Language and locale of the calendar, default en-US",
     )
-    parser.add_argument(
-        "-b",
-        "--browsing_history",
-        action="store_true",
-        help="Add the content to the apps browsing_history",
-    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     locale = args.locale
-    hist = args.browsing_history
 
     base_url = f"https://prod-server.de4taiqu.srv.nintendo.net/{locale}/"
     news_url = base_url + "news_contents/"
     contents_url = base_url + "contents/"
-    hist_url = base_url + "browsing_history/"
 
     s = create_session()
     if s is None:
@@ -61,8 +53,6 @@ def main() -> int:
 
         post_data = post_response.json()
         print("Found post: " + post_data["user_content"]["content"]["title"])
-        if hist:
-            s.put(hist_url + post_id)
 
         timestamp = post_data["user_content"]["content"]["opened_at"]
         time = datetime.fromtimestamp(timestamp, UTC).isoformat()[:10]

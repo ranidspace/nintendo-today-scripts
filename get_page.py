@@ -1,82 +1,100 @@
-#!/usr/bin/env python
 # Filename: get_page.py
 # Author: Ranidspace
 # Description: Downloads an .html page and all assets from Nintendo Today
-
 import re
 import sys
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
-import requests
 from bs4 import BeautifulSoup
+from requests import Response, Session
 
 
-def get_css_images(session, links, base_url, relative, css):
+def download_content(output_dir: Path, save_path: Path, req: Response):
+    outpath = output_dir.joinpath(save_path)
+    Path(outpath).parent.mkdir(parents=True, exist_ok=True)
+    outpath.write_bytes(req.content)
+
+
+def get_css_images(
+    session: Session,
+    output_dir: Path,
+    base_url: str,
+    css_rel_path: Path,
+    css_data: bytes,
+):
     """Download linked images in css files"""
     # this is so jank
-    regex = b'(?<=url\\(")(.*)(?="\\))'
-    urls = re.findall(regex, css)
-    for url in urls:
+    regex = rb'(url\("?)(.*?)("?\))'
+    matches = re.findall(regex, css_data)
+    for match in matches:
         # All images have been webp so far should be fine
+        url = match[1]
         if b"webp" in url:
-            parent = Path(relative).parent
-            rel = parent / url.decode("utf-8")
+            # URLs in CSS are relative to the css file itself
+            parent = Path(css_rel_path).parent
+            rel = parent.joinpath(url.decode("utf-8"))
             file_url = urljoin(base_url, str(rel))
-            image = session.get(file_url).content
-            links.append((rel, image))
+            image = session.get(file_url)
+            if image.ok:
+                download_content(output_dir, rel, image)
 
 
-def save_page(url, session, path: Path, title="index"):
+def save_page(page_url: str, session: Session, output_dir: Path, title="index"):
     # convert all image links to large images
-    html = session.get(url).content
+    html = session.get(page_url).content
+
     html = html.replace(b"-tiny.webp", b"-large.webp")
     html = html.replace(b"-small.webp", b"-large.webp")
     html = html.replace(b"-medium.webp", b"-large.webp")
 
-    # Save the original html file
-    path.mkdir(exist_ok=True)
+    output_dir.mkdir(exist_ok=True)
+
     # Create filename safe title
     title = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", title)
-    title = title.replace(r"/\s\s+/g", " ")
-    path.joinpath(f"{title}.html").write_bytes(html)
+    title = title.replace(r"/\s\s+/g", " ").strip()
+    output_dir.joinpath(f"{title}.html").write_bytes(html)
 
     soup = BeautifulSoup(html, "html.parser")
 
-    links = []
-
-    # download stylesheets
     # XXX: this assumes all things with a link tag are css files.
     for link in soup.find_all("link"):
-        if link.attrs.get("href"):
-            relative = link.attrs.get("href")
+        if href := link.attrs.get("href"):
+            href = str(href)
+
+            if urlsplit(href).scheme:
+                continue
 
             # urljoin seems to be smart and not include the filename, yay!
-            file_url = urljoin(url, relative)
+            relative_path = Path(href)
+            file_url = urljoin(page_url, href)
 
-            css = session.get(file_url).content
-            css = css.replace(b"-tiny.webp", b"-large.webp")
-            css = css.replace(b"-small.webp", b"-large.webp")
-            css = css.replace(b"-medium.webp", b"-large.webp")
-            get_css_images(session, links, url, relative, css)
-            links.append((relative, css))
+            css = session.get(file_url)
+            if css.ok:
+                download_content(output_dir, relative_path, css)
+                get_css_images(session, output_dir, page_url, relative_path, css.content)
 
-    # get images from the html files
+    def download_inline_link(content, attribute: str):
+        if relative_path := content.get(attribute):
+            relative_path = content.get(attribute)
+            file_url = urljoin(page_url, relative_path)
+            image = session.get(file_url)
+            if image.ok:
+                download_content(output_dir, Path(str(relative_path)), image)
+
     for img in soup.find_all("img"):
-        if img.get("src"):
-            relative = img.get("src")
-            file_url = urljoin(url, relative)
-            image = session.get(file_url).content
-            links.append((relative, image))
+        download_inline_link(img, "src")
+
+    for video in soup.find_all("video"):
+        # get poster
+        download_inline_link(video, "poster")
+
+        # get video
+        if vid := video.find("source"):
+            download_inline_link(vid, "src")
 
     # TODO: get javascript files
     # not really needed since it seems to be app-related only.
-
-    # Save each file in the proper position
-    for link in links:
-        outpath = path / link[0]
-        Path(outpath).parent.mkdir(parents=True, exist_ok=True)
-        outpath.write_bytes(link[1])
 
 
 def from_json(json, _, path: Path) -> None:
@@ -84,7 +102,7 @@ def from_json(json, _, path: Path) -> None:
     url = json["user_content"]["content"]["content_body_url"]
     title = json["user_content"]["content"]["title"]
     # create new session to fix an issue?
-    s = requests.Session()
+    s = Session()
     s.headers["cookie"] = "__token__=" + json["user_content"]["content"]["akamai_token"]
 
     save_page(url, s, path, title)
@@ -92,7 +110,7 @@ def from_json(json, _, path: Path) -> None:
 
 def main():
     base_url = input("Input page URL: ")
-    session = requests.Session()
+    session = Session()
     session.headers["cookie"] = input("Input cookie: ")
 
     save_page(base_url, session, Path("./site/"))

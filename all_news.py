@@ -1,3 +1,7 @@
+# Filename: all_news.py
+# Author: Ranidspace
+# Description: Downloads all the daily videos shown on the Nintendo Today app
+
 import argparse
 import sys
 from datetime import UTC, datetime

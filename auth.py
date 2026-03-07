@@ -10,7 +10,7 @@ CLIENT_FILE = pathlib.Path("./client.json")
 HEADERS = {
     "time_zone": "America/Chicago",
     "operating-system": "android",
-    "application-version": "2.4.0",
+    "application-version": "3.0.0",
     "application-version-secret": "9iEfV3uen8MSShkF",
 }
 

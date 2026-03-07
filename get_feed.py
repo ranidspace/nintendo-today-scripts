@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Filename: get_feed.py
 # Author: Ranidspace
 # Description: Download all items in a content feed

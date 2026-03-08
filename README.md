@@ -14,9 +14,6 @@ traffic](#intercept-phone-traffic) for guidance.
 
 Downloads all the entries in a feed, such as the "Artworks Archive" or game
 lore pages.
-The locale is in the form `en-US` (default), many locales are not supported by
-the app yet.
-
 
 ### Usage
 
@@ -28,6 +25,10 @@ The `-b` flag will add all found entries to your account's "Browsing History"
 
 The `first_post_id` is the id of the first entry in the feed. This script will
 download all posts afterwards
+
+The locale is in the form `en-US` (default), here's a list of languages which
+are known to be supported. `de-DE, en-GB, en-US, es-ES, es-MX, fr-FR, it-IT,
+ja-JP, ko-KR, nl-NL, pt-BR, zh-TW`
 
 Requires `requests, beautifulsoup4, ffmpeg-python` modules.
 

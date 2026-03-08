@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from requests import Response, Session
 
 
@@ -53,9 +53,10 @@ def save_page(page_url: str, session: Session, output_dir: Path, title="index"):
     # Create filename safe title
     title = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", title)
     title = title.replace(r"/\s\s+/g", " ").strip()
-    output_dir.joinpath(f"{title}.html").write_bytes(html)
 
     soup = BeautifulSoup(html, "html.parser")
+    for css in soup.find_all("style"):
+        get_css_images(session, output_dir, page_url, Path("./"), css.encode())
 
     # XXX: this assumes all things with a link tag are css files.
     for link in soup.find_all("link"):
@@ -74,13 +75,19 @@ def save_page(page_url: str, session: Session, output_dir: Path, title="index"):
                 download_content(output_dir, relative_path, css)
                 get_css_images(session, output_dir, page_url, relative_path, css.content)
 
-    def download_inline_link(content, attribute: str):
-        if relative_path := content.get(attribute):
-            relative_path = content.get(attribute)
-            file_url = urljoin(page_url, relative_path)
+    def download_inline_link(content: Tag, attribute: str):
+        if relative_path := str(content.get(attribute) or ""):
+            if urlsplit(relative_path).scheme:
+                file_url = relative_path
+                base_path = urlsplit(relative_path).path
+                relative_path = Path(base_path).relative_to("/")
+
+                content[attribute] = str(relative_path)
+            else:
+                file_url = urljoin(page_url, relative_path)
             image = session.get(file_url)
             if image.ok:
-                download_content(output_dir, Path(str(relative_path)), image)
+                download_content(output_dir, Path(relative_path), image)
 
     for img in soup.find_all("img"):
         download_inline_link(img, "src")
@@ -92,6 +99,8 @@ def save_page(page_url: str, session: Session, output_dir: Path, title="index"):
         # get video
         if vid := video.find("source"):
             download_inline_link(vid, "src")
+
+    output_dir.joinpath(f"{title}.html").write_text(str(soup))
 
     # TODO: get javascript files
     # not really needed since it seems to be app-related only.

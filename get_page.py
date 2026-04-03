@@ -7,14 +7,14 @@ from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
 from bs4 import BeautifulSoup, Tag
-from requests import Response, Session
+from niquests import Response, Session
 
 
 def download_content(output_dir: Path, save_path: Path, req: Response):
     outpath = output_dir.joinpath(save_path)
     Path(outpath).parent.mkdir(parents=True, exist_ok=True)
-    outpath.write_bytes(req.content)
-
+    if req.content:
+        outpath.write_bytes(req.content)
 
 def get_css_images(
     session: Session,
@@ -43,6 +43,8 @@ def get_css_images(
 def save_page(page_url: str, session: Session, output_dir: Path, title="index"):
     # convert all image links to large images
     html = session.get(page_url).content
+    if html is None:
+        return
 
     html = html.replace(b"-tiny.webp", b"-large.webp")
     html = html.replace(b"-small.webp", b"-large.webp")
@@ -71,7 +73,7 @@ def save_page(page_url: str, session: Session, output_dir: Path, title="index"):
             file_url = urljoin(page_url, href)
 
             css = session.get(file_url)
-            if css.ok:
+            if css.ok and css.content:
                 download_content(output_dir, relative_path, css)
                 get_css_images(session, output_dir, page_url, relative_path, css.content)
 

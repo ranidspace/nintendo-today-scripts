@@ -1,4 +1,0 @@
-icalendar
-requests
-beautifulsoup4
-ffmpeg-python

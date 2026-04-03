@@ -1,0 +1,26 @@
+[project]
+name = "nintendo-today-scripts"
+version = "0.0.1"
+description = "Scripts for extracting information from"
+readme = "README.md"
+requires-python = ">=3.14"
+license = "GPL-3.0-or-later"
+authors = [{ name = "ranidspace" }]
+
+classifiers = [
+  "Environment :: Console",
+  "Programming Language :: Python",
+  "Topic :: Games/Entertainment",
+  "Topic :: Internet",
+  "Typing :: Typed",
+]
+dependencies = [
+  "beautifulsoup4>=4.14.3",
+  "ffmpeg-python>=0.2.0",
+  "icalendar>=7.0.3",
+  "niquests>=3.18.4",
+  "pyqwest>=0.4.1",
+]
+
+[tool.ruff]
+line-length = 120

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Filename: nintendical.py
 # Author: Ranidspace
 # Description: Exports all the Nintendo Today calendars to .ics files
@@ -9,9 +8,7 @@ import sys
 from datetime import date, datetime, timedelta
 
 import icalendar
-import requests
-
-__version__ = "0.0.1"
+import niquests
 
 
 def parse_args():
@@ -60,7 +57,7 @@ def main():
         "https://prod-server.de4taiqu.srv.nintendo.net/" + locale + "/event_schedules"
     )
 
-    response = requests.get(link, params=payload, headers=header)
+    response = niquests.get(link, params=payload, headers=header)
 
     if response.status_code != 200:
         print(f"Failed to get events: Error {response.status_code}\n{response.json()}")

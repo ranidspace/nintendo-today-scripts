@@ -1,13 +1,13 @@
 {
   pkgs ? import <nixpkgs> { },
 }:
-pkgs.mkShell {
+pkgs.mkShellNoCC {
   # nativeBuildInputs is usually what you want -- tools you need to run
   nativeBuildInputs = with pkgs.buildPackages; [
     (python3.withPackages (
       ps: with ps; [
         icalendar
-        requests
+        niquests
         beautifulsoup4
         ffmpeg-python
       ]

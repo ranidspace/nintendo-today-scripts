@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Filename: get_calendar_videos.py
 # Author: Ranidspace
 # Description: Downloads all the daily videos shown on the Nintendo Today app
@@ -7,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-import requests
+import niquests
 
 from auth import create_session
 
@@ -39,7 +38,7 @@ def main():
 
     if not response.ok:
         print(
-            f"Failed to get calendars: Error {response.status_code}\n{response.json()}"
+            f"Failed to get calendars: Error {response.status_code}\n{response.json()}",
         )
         return 1
 
@@ -59,8 +58,8 @@ def main():
         link = link.replace("-tiny.mov", "-large.mov")
         link = link.replace("-small.mov", "-large.mov")
         link = link.replace("-medium.mov", "-large.mov")
-        r = requests.get(link, timeout=1)
-        if r.ok:
+        r = niquests.get(link, timeout=1)
+        if r.ok and r.content is not None:
             filepath.write_bytes(r.content)
         else:
             print(f"Error downloading: {r.text}")
@@ -71,8 +70,8 @@ def main():
         link = link.replace("-tiny.webp", "-large.webp")
         link = link.replace("-small.webp", "-large.webp")
         link = link.replace("-medium.webp", "-large.webp")
-        r = requests.get(link, timeout=1)
-        if r.ok:
+        r = niquests.get(link, timeout=1)
+        if r.ok and r.content is not None:
             filepath.write_bytes(r.content)
         else:
             print(f"Error downloading: {r.text}")

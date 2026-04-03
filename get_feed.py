@@ -8,18 +8,18 @@ import sys
 from pathlib import Path
 
 import ffmpeg
-import requests
+import niquests
 
 from auth import create_session, update_token
 from get_page import from_json
 
 
 def download_video(
-    info,
-    session: requests.Session,
+    info: dict,
+    session: niquests.Session,
     path: Path,
     locale: str,
-) -> requests.Response | None:
+) -> niquests.Response | None:
     """Use system ffmpeg to get the video"""
     url = info["user_content"]["content"]["content_movie_url"]
     title = info["user_content"]["content"]["title"]
@@ -55,7 +55,7 @@ def download_video(
     return None
 
 
-def download_images(info: dict, _, path: Path) -> requests.Response | None:
+def download_images(info: dict, _, path: Path) -> niquests.Response | None:
     """Get all images in a gallery post"""
     urls = info["user_content"]["content"]["content_image_urls"]
     group = info["user_content"]["content"].get("content_group_name")
@@ -76,19 +76,20 @@ def download_images(info: dict, _, path: Path) -> requests.Response | None:
         print(f"\tDownloading image: {title}")
 
         # Download and save image with a unique session
-        r = requests.get(url, timeout=5)
+        r = niquests.get(url, timeout=5)
         r.raise_for_status()
-        outdir = path.joinpath(title)
-        outdir.write_bytes(r.content)
+        if r.content is not None:
+            outdir = path.joinpath(title)
+            outdir.write_bytes(r.content)
     return None
 
 
 def download_individual(
     json_info: dict,
-    session: requests.Session,
+    session: niquests.Session,
     locale: str,
     path: Path | None = None,
-) -> requests.Response | None:
+) -> niquests.Response | None:
     post_content = json_info["user_content"]["content"]
 
     # 1: HTML page
@@ -144,7 +145,7 @@ def main():
         # Get type of url
         response = s.get(base_contents + post_id)
         response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
+    except niquests.exceptions.HTTPError as e:
         # Only doing a one check
         print("Failed to get entry", file=sys.stderr)
         print(e.args[0], file=sys.stderr)
@@ -177,9 +178,7 @@ def main():
 
         if response is not None:
             # retry
-            print(
-                "Error downloading media, attempting to update token.", file=sys.stderr
-            )
+            print("Error downloading media, attempting to update token.", file=sys.stderr)
             s = update_token(s)
             if s is None:
                 return 1

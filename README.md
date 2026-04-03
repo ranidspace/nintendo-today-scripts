@@ -3,8 +3,7 @@
 This repo contains a couple scripts I've made to download or convert data from
 the Nintendo Today mobile app.
 
-Each script has it's own dependencies, however `pip install -r
-requirements.txt` gets the dependencies for all of them.
+Run `pip install .` or `uv sync` to install all dependencies.
 
 When running any script for the first time it will ask for a `refresh_token`
 and a `device_account_id`, please see [the section on intercepting phone
@@ -30,7 +29,7 @@ The locale is in the form `en-US` (default), here's a list of languages which
 are known to be supported. `de-DE, en-GB, en-US, es-ES, es-MX, fr-FR, it-IT,
 ja-JP, ko-KR, nl-NL, pt-BR, zh-TW`
 
-Requires `requests, beautifulsoup4, ffmpeg-python` modules.
+Requires `niquests, beautifulsoup4, ffmpeg-python` modules.
 
 ## all_news.py
 
@@ -64,7 +63,7 @@ will be a year from the current date, and the locale will be `en-US`.
 
 Locale is the same as `get_feed`
 
-Requires `requests, icalendar` modules
+Requires `niquests, icalendar` modules
 
 ## get_calendar_videos.py
 
@@ -100,7 +99,7 @@ python get_page.py
 The web request for the html file on the app includes a cookie header, which
 begins with `__token__=exp=`, include the full cookie.
 
-Requires `requests, beautifulsoup4` modules.
+Requires `niquests, beautifulsoup4` modules.
 
 ## Download news videos
 

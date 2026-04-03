@@ -29,7 +29,7 @@ The locale is in the form `en-US` (default), here's a list of languages which
 are known to be supported. `de-DE, en-GB, en-US, es-ES, es-MX, fr-FR, it-IT,
 ja-JP, ko-KR, nl-NL, pt-BR, zh-TW`
 
-Requires `niquests, beautifulsoup4, ffmpeg-python` modules.
+Requires `niquests, beautifulsoup4, ffmpeg-python, aiofile` modules.
 
 ## all_news.py
 
@@ -99,7 +99,7 @@ python get_page.py
 The web request for the html file on the app includes a cookie header, which
 begins with `__token__=exp=`, include the full cookie.
 
-Requires `niquests, beautifulsoup4` modules.
+Requires `niquests, beautifulsoup4, aiofile` modules.
 
 ## Download news videos
 

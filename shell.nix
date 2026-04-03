@@ -10,6 +10,7 @@ pkgs.mkShellNoCC {
         niquests
         beautifulsoup4
         ffmpeg-python
+        aiofile
       ]
     ))
   ];

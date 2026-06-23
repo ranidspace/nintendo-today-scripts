@@ -66,6 +66,7 @@ async def save_page(page_url: str, cookie: str, output_dir: Path, title="index")
         title = title.replace(r"/\s\s+/g", " ").strip()
 
         soup = BeautifulSoup(html, "html.parser")
+        locale = str(soup.html.get("lang")) or "en-US"
         for css in soup.find_all("style"):
             downloads += await get_css_images(page_url, Path("./"), css.encode())
 
@@ -87,16 +88,31 @@ async def save_page(page_url: str, cookie: str, output_dir: Path, title="index")
                     await save_content(output_dir, relative_path, css)
                     downloads += await get_css_images(page_url, relative_path, css.content)
 
-        async def add_inline_link(content: Tag, attribute: str):
+        async def add_inline_link(content: Tag, attribute: str, local=False):
             if relative_path := str(content.get(attribute) or ""):
                 if urlsplit(relative_path).scheme:
+                    if local:
+                        return
                     file_url = relative_path
                     base_path = urlsplit(relative_path).path
                     relative_path = Path(base_path).relative_to("/")
 
                     content[attribute] = str(relative_path)
                 else:
+                    if relative_path[0] == "/":
+                        return
+                    if relative_path[:2] != "./":
+                        relative_path = "./" + relative_path
+                        content[attribute] = str(relative_path)
                     file_url = urljoin(page_url, relative_path)
+                downloads.append((Path(relative_path), file_url))
+
+            # Instead of being in the "src" it's dynamically grabbed from js
+            # JS files are grabbed now, but they don't seem to work
+            elif data_file := str(content.get("data-file") or ""):
+                relative_path = f"./assets/img/lang/{locale}/{data_file}"
+                content[attribute] = str(relative_path)
+                file_url = urljoin(page_url, relative_path)
                 downloads.append((Path(relative_path), file_url))
 
         for img in soup.find_all("img"):
@@ -109,6 +125,9 @@ async def save_page(page_url: str, cookie: str, output_dir: Path, title="index")
             # get video
             if vid := video.find("source"):
                 await add_inline_link(vid, "src")
+
+        for script in soup.find_all("script"):
+            await add_inline_link(script, "src", local=True)
 
         async with async_open(output_dir.joinpath(f"{title}.html"), "w") as afp:
             await afp.write(str(soup))

@@ -59,15 +59,16 @@ def download_images(info: dict, _, path: Path) -> niquests.Response | None:
     """Get all images in a gallery post"""
     urls = info["user_content"]["content"]["content_image_urls"]
     group = info["user_content"]["content"].get("content_group_name")
-    title = info["user_content"]["content"]["title"]
+    base_title = info["user_content"]["content"]["title"]
     # make filename safe
-    title = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", title)
-    title = re.sub(r"\s+", " ", title)
+    base_title = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", base_title)
+    base_title = re.sub(r"\s+", " ", base_title)
 
     for i in range(len(urls)):
         # Ensure large image
         url = urls[i].replace("-small.", "-large.")
         suffix = Path(url.split("?")[0]).suffix
+        title = base_title
         if group:
             title = f"{group} - {title}"
         if len(urls) > 1:

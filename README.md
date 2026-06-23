@@ -37,8 +37,11 @@ Downloads every single news post from the main "News" feed and categorizes it.
 This misses a lot of content which isn't marked as news.
 
 ```
-python all_news.py [-l locale]
+python all_news.py [-f/--force] [-l locale]
 ```
+
+`-f` or `--force` will download things regardless if they are already
+downloaded (make a backup if needed)
 
 Locale is the same as `get_feed`
 

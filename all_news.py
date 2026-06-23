@@ -20,12 +20,19 @@ def parse_args():
         default="en-US",
         help="Language and locale of the calendar, default en-US",
     )
+    parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Download news even if it already exists",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     locale = args.locale
+    force = args.force
 
     base_url = f"https://prod-server.de4taiqu.srv.nintendo.net/{locale}/"
     news_url = base_url + "news_contents/"
@@ -62,7 +69,7 @@ def main() -> int:
         time = datetime.fromtimestamp(timestamp, UTC).isoformat()[:10]
         path = Path("./news").joinpath(f"{time} - {post_id}")
 
-        if path.exists():
+        if final_path.exists() and not force:
             print("Data exists, skipping.")
             continue
 

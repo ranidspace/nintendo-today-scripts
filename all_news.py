@@ -67,14 +67,15 @@ def main() -> int:
 
         timestamp = post_data["user_content"]["content"]["opened_at"]
         time = datetime.fromtimestamp(timestamp, UTC).isoformat()[:10]
-        path = Path("./news").joinpath(f"{time} - {post_id}")
+        final_path = Path("./news").joinpath(f"{time} - {post_id}")
 
         if final_path.exists() and not force:
             print("Data exists, skipping.")
             continue
 
-        path.mkdir(parents=True, exist_ok=True)
-        response = download_individual(post_data, s, locale, path)
+        temp_path = final_path.parent.joinpath(final_path.name + "-tmp")
+        temp_path.mkdir(parents=True, exist_ok=True)
+        response = download_individual(post_data, s, locale, temp_path)
 
         if response is not None:
             # retry
@@ -89,6 +90,8 @@ def main() -> int:
             if response is not None:
                 print(f"Unrecoverable error: {response.text}", file=sys.stderr)
                 return 1
+
+        temp_path.rename(final_path)
 
     return 0
 
